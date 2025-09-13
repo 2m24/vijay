@@ -9,50 +9,63 @@ const DocumentPreview = ({ document, diffs, title, containerId }) => {
 
   // Handle scroll synchronization between containers
   useEffect(() => {
-    if (!containerRef.current || !containerId || diffs) return; // Disable sync when showing diffs
+    if (!containerRef.current || !containerId) return;
 
     const container = containerRef.current;
-    let isSyncing = false;
+    
+    // Use a more robust syncing mechanism
+    let syncTimeout = null;
 
-    const handleScroll = (e) => {
-      if (isSyncing) return;
-      
-      const sourceContainer = e.target;
-      const sourceId = sourceContainer.id;
-      
-      // Determine the target container ID
-      const targetId = sourceId.includes('left') 
-        ? sourceId.replace('left', 'right') 
-        : sourceId.replace('right', 'left');
-      const targetContainer = window.document.getElementById(targetId);
-      
-      if (targetContainer && targetContainer !== sourceContainer) {
-        // Prevent infinite loop
-        isSyncing = true;
-        
-        // Calculate scroll ratio
-        const sourceMaxScroll = Math.max(1, sourceContainer.scrollHeight - sourceContainer.clientHeight);
-        const targetMaxScroll = Math.max(1, targetContainer.scrollHeight - targetContainer.clientHeight);
-        
-        if (sourceMaxScroll > 0 && targetMaxScroll > 0) {
-          const scrollRatio = sourceContainer.scrollTop / sourceMaxScroll;
-          const targetScrollTop = Math.round(targetMaxScroll * scrollRatio);
-          targetContainer.scrollTop = targetScrollTop;
-        }
-        
-        // Reset flag immediately
-        requestAnimationFrame(() => {
-          isSyncing = false;
-        });
+    const handleScroll = () => {
+      // Clear any pending sync
+      if (syncTimeout) {
+        clearTimeout(syncTimeout);
       }
+      
+      // Debounce the sync to prevent excessive calls
+      syncTimeout = setTimeout(() => {
+        const sourceContainer = container;
+        const sourceId = sourceContainer.id;
+        
+        // Determine the target container ID
+        const targetId = sourceId.includes('left') 
+          ? sourceId.replace('left', 'right') 
+          : sourceId.replace('right', 'left');
+        const targetContainer = document.getElementById(targetId);
+        
+        if (targetContainer && targetContainer !== sourceContainer) {
+          // Calculate scroll ratio
+          const sourceMaxScroll = Math.max(1, sourceContainer.scrollHeight - sourceContainer.clientHeight);
+          const targetMaxScroll = Math.max(1, targetContainer.scrollHeight - targetContainer.clientHeight);
+          
+          if (sourceMaxScroll > 0 && targetMaxScroll > 0) {
+            const scrollRatio = sourceContainer.scrollTop / sourceMaxScroll;
+            const targetScrollTop = Math.round(targetMaxScroll * scrollRatio);
+            
+            // Temporarily remove the scroll listener from target to prevent loop
+            const targetScrollHandler = targetContainer.onscroll;
+            targetContainer.onscroll = null;
+            
+            targetContainer.scrollTop = targetScrollTop;
+            
+            // Restore the scroll listener after a brief delay
+            setTimeout(() => {
+              targetContainer.onscroll = targetScrollHandler;
+            }, 50);
+          }
+        }
+      }, 10);
     };
 
-    container.addEventListener('scroll', handleScroll, { passive: false });
+    container.addEventListener('scroll', handleScroll, { passive: true });
 
     return () => {
+      if (syncTimeout) {
+        clearTimeout(syncTimeout);
+      }
       container.removeEventListener('scroll', handleScroll);
     };
-  }, [containerId, diffs]);
+  }, [containerId]);
 
   // Auto-scale content to fit container width while preserving proportions
   useEffect(() => {

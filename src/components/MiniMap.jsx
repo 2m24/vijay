@@ -28,9 +28,11 @@ const UnifiedScrollBar = ({ leftContainerId, rightContainerId }) => {
     const { left, right } = getContainers();
     if (!left || !right) return;
 
-    // Temporarily disable scroll event listeners to prevent conflicts
-    const leftScrollHandler = left.onscroll;
-    const rightScrollHandler = right.onscroll;
+    // Store original scroll handlers
+    const leftHandler = left.onscroll;
+    const rightHandler = right.onscroll;
+    
+    // Temporarily disable scroll handlers
     left.onscroll = null;
     right.onscroll = null;
 
@@ -45,10 +47,11 @@ const UnifiedScrollBar = ({ leftContainerId, rightContainerId }) => {
       right.scrollTop = rightScrollTop;
     }
 
-    // Re-enable scroll handlers after a brief delay
-    requestAnimationFrame(() => {
-      left.onscroll = leftScrollHandler;
-      right.onscroll = rightScrollHandler;
+    // Re-enable scroll handlers after scrolling is complete
+    setTimeout(() => {
+      left.onscroll = leftHandler;
+      right.onscroll = rightHandler;
+    }, 100);
     });
   }, [getContainers]);
 
