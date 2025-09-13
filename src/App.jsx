@@ -184,7 +184,7 @@ function App() {
             />
 
             {/* Document Comparison View */}
-            <div className="grid grid-cols-[1fr_48px_1fr] gap-4 h-[90vh]">
+            <div className="grid grid-cols-[1fr_48px_1fr] gap-4 h-[90vh] overflow-hidden">
               <DocumentPreview
                 document={leftDocument}
                 diffs={comparison.leftDiffs}

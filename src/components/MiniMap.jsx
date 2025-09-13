@@ -28,13 +28,9 @@ const UnifiedScrollBar = ({ leftContainerId, rightContainerId }) => {
     const { left, right } = getContainers() || {};
     if (!left || !right) return;
 
-    // Store original scroll handlers
-    const leftHandler = left.onscroll;
-    const rightHandler = right.onscroll;
-    
-    // Temporarily disable scroll handlers
-    left.onscroll = null;
-    right.onscroll = null;
+    // Temporarily disable scroll sync to prevent loops
+    left.setAttribute('data-syncing', 'true');
+    right.setAttribute('data-syncing', 'true');
 
     const leftMaxScroll = Math.max(1, left.scrollHeight - left.clientHeight);
     const rightMaxScroll = Math.max(1, right.scrollHeight - right.clientHeight);
@@ -47,11 +43,11 @@ const UnifiedScrollBar = ({ leftContainerId, rightContainerId }) => {
       right.scrollTop = rightScrollTop;
     }
 
-    // Re-enable scroll handlers after scrolling is complete
+    // Re-enable scroll sync after scrolling is complete
     setTimeout(() => {
-      left.onscroll = leftHandler;
-      right.onscroll = rightHandler;
-    }, 100);
+      left.removeAttribute('data-syncing');
+      right.removeAttribute('data-syncing');
+    }, 50);
   }, [getContainers]);
 
   /** Handle click on scroll bar */

@@ -7,62 +7,53 @@ const DocumentPreview = ({ document, diffs, title, containerId }) => {
 
   const content = diffs ? renderHtmlDifferences(diffs) : document.originalHtmlContent;
 
-  // Handle scroll synchronization between containers
+  // Enhanced scroll synchronization between containers
   useEffect(() => {
     if (!containerRef.current || !containerId) return;
 
     const container = containerRef.current;
-    
-    // Use a more robust syncing mechanism
-    let syncTimeout = null;
+    let isScrolling = false;
 
     const handleScroll = () => {
-      // Clear any pending sync
-      if (syncTimeout) {
-        clearTimeout(syncTimeout);
-      }
+      // Prevent recursive scroll events
+      if (isScrolling) return;
       
-      // Debounce the sync to prevent excessive calls
-      syncTimeout = setTimeout(() => {
-        const sourceContainer = container;
-        const sourceId = sourceContainer.id;
+      const sourceContainer = container;
+      const sourceId = sourceContainer.id;
+      
+      // Determine the target container ID
+      const targetId = sourceId.includes('left') 
+        ? sourceId.replace('left', 'right') 
+        : sourceId.replace('right', 'left');
+      const targetContainer = document.getElementById(targetId);
+      
+      if (targetContainer && targetContainer !== sourceContainer) {
+        // Calculate scroll ratio
+        const sourceMaxScroll = Math.max(1, sourceContainer.scrollHeight - sourceContainer.clientHeight);
+        const targetMaxScroll = Math.max(1, targetContainer.scrollHeight - targetContainer.clientHeight);
         
-        // Determine the target container ID
-        const targetId = sourceId.includes('left') 
-          ? sourceId.replace('left', 'right') 
-          : sourceId.replace('right', 'left');
-        const targetContainer = document.getElementById(targetId);
-        
-        if (targetContainer && targetContainer !== sourceContainer) {
-          // Calculate scroll ratio
-          const sourceMaxScroll = Math.max(1, sourceContainer.scrollHeight - sourceContainer.clientHeight);
-          const targetMaxScroll = Math.max(1, targetContainer.scrollHeight - targetContainer.clientHeight);
+        if (sourceMaxScroll > 0 && targetMaxScroll > 0) {
+          const scrollRatio = sourceContainer.scrollTop / sourceMaxScroll;
+          const targetScrollTop = Math.round(targetMaxScroll * scrollRatio);
           
-          if (sourceMaxScroll > 0 && targetMaxScroll > 0) {
-            const scrollRatio = sourceContainer.scrollTop / sourceMaxScroll;
-            const targetScrollTop = Math.round(targetMaxScroll * scrollRatio);
-            
-            // Temporarily remove the scroll listener from target to prevent loop
-            const targetScrollHandler = targetContainer.onscroll;
-            targetContainer.onscroll = null;
-            
-            targetContainer.scrollTop = targetScrollTop;
-            
-            // Restore the scroll listener after a brief delay
-            setTimeout(() => {
-              targetContainer.onscroll = targetScrollHandler;
-            }, 50);
-          }
+          // Set flag to prevent recursive scrolling
+          isScrolling = true;
+          
+          // Sync the target container
+          targetContainer.scrollTop = targetScrollTop;
+          
+          // Reset flag after a brief delay
+          setTimeout(() => {
+            isScrolling = false;
+          }, 16); // ~1 frame at 60fps
         }
-      }, 10);
+      }
     };
 
-    container.addEventListener('scroll', handleScroll, { passive: true });
+    // Use passive: false to ensure we can control the scroll behavior
+    container.addEventListener('scroll', handleScroll, { passive: false });
 
     return () => {
-      if (syncTimeout) {
-        clearTimeout(syncTimeout);
-      }
       container.removeEventListener('scroll', handleScroll);
     };
   }, [containerId]);
