@@ -25,7 +25,7 @@ const UnifiedScrollBar = ({ leftContainerId, rightContainerId }) => {
   );
   /** Scroll both containers to a specific ratio */
   const scrollBothToRatio = useCallback((ratio) => {
-    const { left, right } = getContainers();
+    const { left, right } = getContainers() || {};
     if (!left || !right) return;
 
     // Store original scroll handlers
