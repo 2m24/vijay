@@ -52,7 +52,6 @@ const UnifiedScrollBar = ({ leftContainerId, rightContainerId }) => {
       left.onscroll = leftHandler;
       right.onscroll = rightHandler;
     }, 100);
-    });
   }, [getContainers]);
 
   /** Handle click on scroll bar */
